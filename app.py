@@ -3,11 +3,13 @@ from flask_migrate import Migrate
 from models import db, Trainer
 from flask_restful import Resource,Api
 from werkzeug.exceptions import HTTPException
+from flask_cors import CORS
 
 # add the sqlalchemy database configurtion to our app
 # initialize our sqlalchemy instance with our app
 # initialize our migrate instance with both our app and our DB
 app = Flask(__name__)
+CORS(app) # Enable CORS for all routes
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gym.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
@@ -53,12 +55,12 @@ class Trainers(Resource):
 
 class TrainerById(Resource):
     def get(self,id):
-        trainer = db.session.query(Trainer).get(trainer_id)
+        trainer = db.session.query(Trainer).get(id)
         resp = make_response(trainer.to_dict(), 200)
         return resp
 
     def patch(self,id):
-        trainer = db.session.query(Trainer).get(trainer_id)
+        trainer = db.session.query(Trainer).get(id)
         for attr in request.json:
             setattr(trainer,attr,request.json.get(attr))
 
@@ -99,7 +101,21 @@ def handle_exception(e):
     response.content_type = "application/json"
     return response
 
+# Move trainers list outside the function so it's globally accessible
+trainers = [
+    {"id": 1, "name": "John Doe", "specialty": "Strength Training"},
+    {"id": 2, "name": "Jane Smith", "specialty": "Yoga"},
+    {"id": 3, "name": "Peter Jones", "specialty": "Cardio"}
+]
+
+@app.route('/api/trainers', methods=['GET'])
+def get_trainers():
+    return jsonify(trainers)
+
 api.add_resource(Welcome, '/')
 api.add_resource(Trainers,'/trainers')
 api.add_resource(TrainerById,"/get_trainer_by_id/<int:id>")
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
